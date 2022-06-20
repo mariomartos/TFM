@@ -1,0 +1,510 @@
+#Cambiamos el directorio de trabajo
+getwd()
+
+#Importamos los datasets descargados mediante el sript de Pyhton
+news_1995_1999 <- read.csv('dataset_news_1995_1999.csv', header = TRUE)
+news_2000_2005 <- read.csv('dataset_news_2000_2005.csv', header = TRUE)
+news_2006_2010 <- read.csv('dataset_news_2006_2010.csv', header = TRUE)
+news_2011_2015 <- read.csv('dataset_news_2011_2015.csv', header = TRUE)
+news_2016_2021 <- read.csv('dataset_news_2016_2021.csv', header = TRUE)
+news_2022 <- read.csv('dataset_news_2022.csv', header = TRUE)
+
+#Aplicamos head para ver como viene la informacion
+head(news_1995_1999)
+
+#Juntamos los 6 dataframes importados
+df_news <- rbind(news_1995_1999,news_2000_2005,news_2006_2010,news_2011_2015,news_2016_2021,news_2022)
+View(df_news)
+
+#Importamos datasets de los Indices
+sp500 <- read.csv('SP500.csv', header = TRUE, sep = ';')
+nasdaq <- read.csv('NASDAQ.csv', header = TRUE, sep = ';')
+russell2000 <- read.csv('R2000.csv', header = TRUE, sep = ';')
+
+head(russell2000)
+
+
+#Data cleanning
+
+#1. Cambiamos el nombre de las columnas de fecha, de ï..Date -> Date
+colnames(df_news)
+colnames(nasdaq)
+colnames(sp500)
+colnames(russell2000)
+
+names(nasdaq)[1]<-'date'
+names(sp500)[1]<-'date'
+names(russell2000)[1]<-'date'
+
+
+
+#2. Eliminamos la columna Adj. Close, ya que los valores son los mismos que en close, y eliminamos el punto de detras de close.
+nasdaq$Adj.Close..<- NULL
+sp500$Adj.Close..<- NULL
+russell2000$Adj.Close..<- NULL
+names(nasdaq)[5]<-'Close'
+names(sp500)[5]<-'Close'
+names(russell2000)[5]<-'Close'
+head(nasdaq)
+
+#3. Transformamos las varaibles Date de ambos datasets, de caracter a fecha. Ahora mismo tenemos dd/mm/yyyy
+df_news$date <- as.Date(df_news$date, format = "%d/%m/%Y")
+nasdaq$date <- as.Date(nasdaq$date, format = "%d/%m/%Y")
+sp500$date <- as.Date(sp500$date, format = "%d/%m/%Y")
+russell2000$date <- as.Date(russell2000$date, format = "%d/%m/%Y")
+
+#4. Añadimos la columna DAYOFWEEK
+library(lubridate)
+df_news <- cbind(df_news, wday(df_news$date, week_start=1))
+names(df_news)[11]<-'Day of week'
+head(df_news)
+
+#5. Analizamos si hay valores NA o nulos, para decidir que criterio seguimos.
+sum(is.na(df_news))
+sum(is.na(df_news$forecast))
+sum(is.na(nasdaq))
+sum(is.na(sp500))
+sum(is.na(russell2000))
+
+
+#6. Convertimos Open, High, Low, Close, Volume de caracter a numérica en los dataframes de fluctuaciones.
+options(digits = 11)
+#Nasdaq
+nasdaq$Open <- gsub(",", "", nasdaq$Open)
+nasdaq$Open <- as.numeric(nasdaq$Open)
+nasdaq$High <- gsub(",", "", nasdaq$High)
+nasdaq$High <- as.numeric(nasdaq$High)
+nasdaq$Low <- gsub(",", "", nasdaq$Low)
+nasdaq$Low <- as.numeric(nasdaq$Low)
+nasdaq$Close <- gsub(",", "", nasdaq$Close)
+nasdaq$Close <- as.numeric(nasdaq$Close)
+nasdaq$Volume <- gsub(",", "", nasdaq$Volume)
+nasdaq$Volume <- as.numeric(nasdaq$Volume)
+head(nasdaq)
+
+#SP500
+sp500$Open <- gsub(",", "", sp500$Open)
+sp500$Open <- as.numeric(sp500$Open)
+sp500$High <- gsub(",", "", sp500$High)
+sp500$High <- as.numeric(sp500$High)
+sp500$Low <- gsub(",", "", sp500$Low)
+sp500$Low <- as.numeric(sp500$Low)
+sp500$Close <- gsub(",", "", sp500$Close)
+sp500$Close <- as.numeric(sp500$Close)
+sp500$Volume <- gsub(",", "", sp500$Volume)
+sp500$Volume <- as.numeric(sp500$Volume)
+head(sp500)
+View(sp500)
+
+#Russell
+russell2000$Open <- gsub(",", "", russell2000$Open)
+russell2000$Open <- as.numeric(russell2000$Open)
+russell2000$High <- gsub(",", "", russell2000$High)
+russell2000$High <- as.numeric(russell2000$High)
+russell2000$Low <- gsub(",", "", russell2000$Low)
+russell2000$Low <- as.numeric(russell2000$Low)
+russell2000$Close <- gsub(",", "", russell2000$Close)
+russell2000$Close <- as.numeric(russell2000$Close)
+russell2000$Volume <- gsub(",", "", russell2000$Volume)
+russell2000$Volume <- as.numeric(russell2000$Volume)
+head(russell2000)
+
+library(dplyr)
+sum(is.na(russell2000$Volume))
+russell2000 %>% filter_all(any_vars(is.na(.)))
+
+#7. Eliminamos la columna ID del dataset de noticias.
+df_news$id<- NULL
+
+#Creación columnas Volatilidad y Variación
+#Volatilidad, para mirar la variación de precio dentro de la sesión, de High a Low, y en valor absoluto.
+
+nasdaq <- cbind(nasdaq, ((nasdaq$High - nasdaq$Low)/nasdaq$Low)*100)
+nasdaq <- cbind(nasdaq, ((nasdaq$Close - nasdaq$Open)/nasdaq$Open)*100)
+names(nasdaq)[7]<-'Volatilidad'
+names(nasdaq)[8] <-'Variacion'
+head(nasdaq)
+
+sp500 <- cbind(sp500, ((sp500$High - sp500$Low)/sp500$Low)*100)
+sp500 <- cbind(sp500, ((sp500$Close - sp500$Open)/sp500$Open)*100)
+names(sp500)[7]<-'Volatilidad'
+names(sp500)[8] <-'Variacion'
+head(sp500)
+View(sp500)
+
+russell2000 <- cbind(russell2000, ((russell2000$High - russell2000$Low)/russell2000$Low)*100)
+russell2000 <- cbind(russell2000, ((russell2000$Close - russell2000$Open)/russell2000$Open)*100)
+names(russell2000)[7]<-'Volatilidad'
+names(russell2000)[8] <-'Variacion'
+head(russell2000)
+
+#Cambiamos el nombre de las columnas de los datasets SP500, nasdaq y russell2000
+
+names(nasdaq)[1]<-'date'
+names(nasdaq)[2]<-'Open_nasdaq'
+names(nasdaq)[3]<-'High_nasdaq'
+names(nasdaq)[4]<-'Low_nasdaq'
+names(nasdaq)[5]<-'Close_nasdaq'
+names(nasdaq)[6]<-'Volume_nasdaq'
+names(nasdaq)[7]<-'Volatilidad_nasdaq'
+names(nasdaq)[8]<-'Variacion_nasdaq'
+
+names(sp500)[1]<-'date'
+names(sp500)[2]<-'Open_sp500'
+names(sp500)[3]<-'High_sp500'
+names(sp500)[4]<-'Low_sp500'
+names(sp500)[5]<-'Close_sp500'
+names(sp500)[6]<-'Volume_sp500'
+names(sp500)[7]<-'Volatilidad_sp500'
+names(sp500)[8]<-'Variacion_sp500'
+
+names(russell2000)[1]<-'date'
+names(russell2000)[2]<-'Open_russell2000'
+names(russell2000)[3]<-'High_russell2000'
+names(russell2000)[4]<-'Low_russell2000'
+names(russell2000)[5]<-'Close_russell2000'
+names(russell2000)[6]<-'Volume_russell2000'
+names(russell2000)[7]<-'Volatilidad_russell2000'
+names(russell2000)[8]<-'Variacion_russell2000'
+
+#Para ahora, unir los 4 datasets en uno
+
+df_final <- merge(x=df_news, y=sp500, by = 'date', all.x = TRUE)
+df_final <- merge(x=df_final, y=nasdaq, by = 'date', all.x = TRUE)
+df_final <- merge(x=df_final, y=russell2000, by = 'date', all.x = TRUE)
+View(df_final)
+head(df_final)
+
+#Analizamos los valores NA
+
+sapply(df_final, function(x) sum(is.na(x)))
+
+#Como podemos ver, en cuanto a open, high, low y close, en los tres indices tenemos los mismos null, ya que 
+#son días festivos. Eliminaremos todas las filas que el Opee_sp500 sea null, para limpiar el dataset
+
+df_final <- df_final[!is.na(df_final$Open_sp500),]
+sapply(df_final, function(x) sum(is.na(x)))
+
+#Ahora ya solo tenemos valores NA, en el forecast, que no nos implica ninguna ineficiencia, y en el volumen del
+#russell2000, lo que tampoco nos implica ningun problema, ya que si queremos hacer algun analisis particular del
+#volumen de este indice, ya descartariamos esos valores.
+
+View(df_final)
+
+#2.3 Analisis exploratorio
+
+#2.3.1  Primera aproximacion, visión general de los datos, head y summary.
+
+head(df_final)
+summary(df_final)
+
+#2.3.2 Analisis temporal volumen, volatilidad, variacion.
+
+#SP500 Volumen
+sp500_volumen <- read.csv('spvol1.csv', sep = ';')
+View(sp500_volumen)
+sp500_volumen$ï..n <- NULL
+sp500_volumen$volsp500 <- gsub(",", "", sp500_volumen$volsp500)
+sp500_volumen$volsp500 <- as.numeric(sp500_volumen$volsp500)
+str(sp500_volumen)
+tempSP500_volumens = ts(sp500_volumen$volsp500,freq=12,start=c(1995,1))
+str(tempSP500_volumens)
+tempSP500_volumens
+plot(tempSP500_volumens,main="Media volumen mensual SP500", xlab="Fecha", ylab="Volumen")
+
+#SP500 volatilidad
+sp500_volatilidad <- read.csv('spvolatilidad.csv', sep = ';')
+View(sp500_volatilidad)
+sp500_volatilidad$ï..n <- NULL
+sp500_volatilidad$volatilidadsp500 <- gsub(",", ".", sp500_volatilidad$volatilidadsp500)
+sp500_volatilidad$volatilidadsp500 <- as.numeric(sp500_volatilidad$volatilidadsp500)
+str(sp500_volatilidad)
+tempSP500_volatilidad = ts(sp500_volatilidad$volatilidadsp500,freq=12,start=c(1995,1))
+str(tempSP500_volatilidad)
+tempSP500_volatilidad
+plot(tempSP500_volatilidad,main="Media volatilidad mensual SP500", xlab="Fecha", ylab="Volatilidad")
+
+#SP500 variacion
+sp500_variacion <- read.csv('spvariacion.csv', sep = ';')
+View(sp500_variacion)
+sp500_variacion$ï..n <- NULL
+sp500_variacion$variacionsp500 <- gsub(",", ".", sp500_variacion$variacionsp500)
+head(sp500$Variacion_sp500)
+sp500_variacion$variacionsp500 <- as.numeric(sp500_variacion$variacionsp500)
+str(sp500_variacion)
+tempSP500_variacion = ts(sp500_variacion$variacionsp500,freq=12,start=c(1995,1))
+str(tempSP500_variacion)
+tempSP500_variacion
+plot(tempSP500_variacion,main="Variacion mensual SP500", xlab="Fecha", ylab="Variacion")
+
+#nasdaq Volumen
+nasdaq_volumen <- read.csv('ndvol1.csv', sep = ';')
+View(nasdaq_volumen)
+nasdaq_volumen$ï..n <- NULL
+str(nasdaq_volumen)
+tempnasdaq_volumen = ts(nasdaq_volumen$ndvol,freq=12,start=c(1995,1))
+str(tempnasdaq_volumen)
+tempnasdaq_volumen
+plot(tempnasdaq_volumen,main="Media volumen mensual NASDAQ", xlab="Fecha", ylab="Volumen")
+
+#nasdaq volatilidad
+nasdaq_volatilidad <- read.csv('ndvolatilidad.csv', sep = ';')
+View(nasdaq_volatilidad)
+nasdaq_volatilidad$ï..n <- NULL
+nasdaq_volatilidad$volatilidadnasdaq <- gsub(",", ".", nasdaq_volatilidad$volatilidadnasdaq)
+nasdaq_volatilidad$volatilidadnasdaq <- as.numeric(nasdaq_volatilidad$volatilidadnasdaq)
+str(nasdaq_volatilidad)
+tempnasdaq_volatilidad = ts(nasdaq_volatilidad$volatilidadnasdaq,freq=12,start=c(1995,1))
+str(tempnasdaq_volatilidad)
+tempnasdaq_volatilidad
+plot(tempnasdaq_volatilidad,main="Media volatilidad mensual NASDAQ", xlab="Fecha", ylab="Volatilidad")
+
+#nasdaq variacion
+nasdaq_variacion <- read.csv('ndvariacion.csv', sep = ';')
+View(nasdaq_variacion)
+nasdaq_variacion$ï..n <- NULL
+nasdaq_variacion$variacionnd <- gsub(",", ".", nasdaq_variacion$variacionnd)
+nasdaq_variacion$variacionnd <- as.numeric(nasdaq_variacion$variacionnd)
+str(nasdaq_variacion)
+tempnasdaq_variacion = ts(nasdaq_variacion$variacionnd,freq=12,start=c(1995,1))
+str(tempnasdaq_variacion)
+tempnasdaq_variacion
+plot(tempnasdaq_variacion,main="Variacion mensual NASDAQ", xlab="Fecha", ylab="Variacion")
+
+#russell Volumen
+russell_volumen <- read.csv('R2000vol1.csv', sep = ';')
+View(russell_volumen)
+russell_volumen$ï..n <- NULL
+str(russell_volumen)
+temprussell_volumen = ts(russell_volumen$r2000vol,freq=12,start=c(1995,1))
+str(temprussell_volumen)
+temprussell_volumen
+plot(temprussell_volumen,main="Media volumen mensual russell", xlab="Fecha", ylab="Volumen")
+
+#russell volatilidad
+russell_volatilidad <- read.csv('R2000volatilidad.csv', sep = ';')
+View(russell_volatilidad)
+russell_volatilidad$ï..n <- NULL
+russell_volatilidad$r2000volatilidad <- gsub(",", ".", russell_volatilidad$r2000volatilidad)
+russell_volatilidad$r2000volatilidad <- as.numeric(russell_volatilidad$r2000volatilidad)
+str(russell_volatilidad)
+temprussell_volatilidad = ts(russell_volatilidad,freq=12,start=c(1995,1))
+str(temprussell_volatilidad)
+temprussell_volatilidad
+plot(temprussell_volatilidad,main="Media volatilidad mensual russell", xlab="Fecha", ylab="Volatilidad")
+
+#russell variacion
+russell_variacion <- read.csv('R2000variacion.csv', sep = ';')
+View(russell_variacion)
+russell_variacion$ï..n <- NULL
+russell_variacion$r2000var <- gsub(",", ".", russell_variacion$r2000var)
+russell_variacion$r2000var <- as.numeric(russell_variacion$r2000var)
+str(russell_variacion)
+temprussell_variacion = ts(russell_variacion,freq=12,start=c(1995,1))
+str(temprussell_variacion)
+temprussell_variacion
+plot(temprussell_variacion,main="Variacion mensual russell", xlab="Fecha", ylab="Variacion")
+
+#Graficos temporales
+
+plot(tempSP500_volumens,main="Media volumen mensual SP500", xlab="Fecha", ylab="Volumen")
+plot(tempnasdaq_volumen,main="Media volumen mensual NASDAQ", xlab="Fecha", ylab="Volumen")
+plot(temprussell_volumen,main="Media volumen mensual russell", xlab="Fecha", ylab="Volumen")
+plot(tempSP500_variacion,main="Variacion mensual SP500", xlab="Fecha", ylab="Variacion")
+plot(tempnasdaq_variacion,main="Variacion mensual NASDAQ", xlab="Fecha", ylab="Variacion")
+plot(temprussell_variacion,main="Variacion mensual russell", xlab="Fecha", ylab="Variacion")
+plot(tempSP500_volatilidad,main="Media volatilidad mensual SP500", xlab="Fecha", ylab="Volatilidad")
+plot(tempnasdaq_volatilidad,main="Media volatilidad mensual NASDAQ", xlab="Fecha", ylab="Volatilidad")
+plot(temprussell_volatilidad,main="Media volatilidad mensual russell", xlab="Fecha", ylab="Volatilidad")
+
+#2.3.3 Correlaciones entre variables numéricas
+
+install.packages(c("psych","ggplot2","car","Hmisc","corrplot"))
+library("psych")
+library("ggplot2")
+library("car")
+library("Hmisc")
+library("corrplot")
+
+cor_num <- select(df_final, date, Volume_sp500,Volatilidad_sp500, Variacion_sp500,Volume_nasdaq, Volatilidad_nasdaq, Variacion_nasdaq, Volume_russell2000, Volatilidad_russell2000, Variacion_russell2000 )
+head(cor_num)
+cor_num_clean <- distinct(cor_num)
+View(round(cor(cor_num_clean[,2:10]),2))
+cor_num_clean_2018 <-filter(cor_num_clean, cor_num_clean$date  > '2018-01-01')
+View(round(cor(cor_num_clean_2018[,2:10]),2))
+
+#2.3.4 Correlaciones entre variables categoricas y continuas
+
+hist(df_final$Volatilidad_sp500, main = "Distribucion volatilidad SP500")
+hist(df_final$Volatilidad_nasdaq)
+hist(df_final$Volatilidad_russell2000)
+
+head(df_final)
+df_rangos <- cbind(df_final, cut(df_final$Volatilidad_sp500, breaks = c(0,0.5,1,1.5,2,2.5,20),
+    labels = c("De 0 a 0,5%", "De 0,5% a 1%", "De 1% a 1,5%", "De 1,5% a 2%", "De 2% a 2,5%", "Mayor de 2,5%") ))
+
+names(df_rangos)[32] <- "Rango volatilidad SP500"
+head(df_rangos)
+
+#Una vez categorizada la variable volatilidad, empezamos a analizar correlaciones.
+#Currency
+currency <- filter(df_rangos, df_rangos$currency != "")
+currency1 <- table(currency$currency, currency$`Rango volatilidad SP500`)
+plot(currency1)
+chisq.test(currency1)
+
+importance <- filter(df_rangos, df_rangos$importance != "")
+importance1 <- table(importance$importance, importance$`Rango volatilidad SP500`)
+plot(importance1)
+chisq.test(importance1)
+
+zone <- filter(df_rangos, df_rangos$zone != "")
+zone1 <- table(zone$zone, zone$`Rango volatilidad SP500`)
+plot(zone1)
+
+#Realizamos estos analisis y vemos que no podemos sacar nada en claro ya que hay demasiado dato que nos es irrelevante
+#Asi pues, filtramos por las zonas que creemos que son importantes bajo nuestro criterio.
+
+zonas_importantes <- filter(df_rangos, df_rangos$zone %in% c("united states", "canada","united kingdom","euro zone", "russia", "china"))
+
+View(zonas_importantes)
+
+#En primer lugar analizamos zona - volatilidad
+zona <- zonas_importantes
+zona[2]<-NULL
+zona[3:30] <- list(NULL)
+zona <- distinct(zona)
+View(zona)
+zona1 <- table(zona$zone, zona$`Rango volatilidad SP500`)
+plot(zona1)
+chisq.test(zona1)
+prop.table(zona1)
+
+zona_2020up <- filter(zona, zona$date > '2020-01-01')
+zona_2020up1 <- table(zona_2020up$zone, zona_2020up$`Rango volatilidad SP500`)
+plot(zona_2020up1)
+chisq.test(zona_2020up1)
+
+#Divisa
+divisa <- zonas_importantes
+divisa[2:3]<-NULL
+divisa[3:29]<- list(NULL)
+divisa <- distinct(divisa)
+divisa1 <- table(divisa$currency, divisa$`Rango volatilidad SP500`)
+plot(divisa1)
+
+#Importancia
+importancia <- zonas_importantes
+importancia[2:4]<-list(NULL)
+importancia[3:28]<-list(NULL)
+importancia <- distinct(importancia)
+importancia1 <- table(importancia$importance, importancia$`Rango volatilidad SP500`)
+plot(importancia1)
+
+chisq.test(importancia1)
+
+importancia_usa <- zonas_importantes
+importancia_usa <- filter(importancia_usa, importancia_usa$zone == 'united states')
+importancia_usa[2:4]<-list(NULL)
+importancia_usa[3:28]<-list(NULL)
+importancia_usa <- distinct(importancia_usa)
+importancia_usa1 <- table(importancia_usa$importance, importancia_usa$`Rango volatilidad SP500`)
+plot(importancia_usa1, main = 'Importancia')
+chisq.test(importancia_usa1)
+
+#Evento
+evento <- zonas_importantes
+evento[2:5] <- list(NULL)
+evento[3:27]<-list(NULL)
+evento <- distinct(evento)
+View(evento)
+table(evento$event, evento$`Rango volatilidad SP500`)
+write.csv2(evento, file = "event1.csv")
+
+event_clean <- read.csv2("event1.csv")
+event_clean[1]<-NULL
+evento1 <- distinct(event_clean)
+evento11 <- table(evento1$event, evento1$Rango.volatilidad.SP500)
+chisq.test(evento11)
+
+#Evento solo USA
+evento_usa <- filter(zonas_importantes, zonas_importantes$zone == 'united states')
+evento_usa[2:5] <- list(NULL)
+evento_usa[3:27]<-list(NULL)
+write.csv2(evento_usa, "evento_usa.csv")
+event_usa_clean <- read.csv2("evento_usa.csv")
+event_usa_clean[1]<-NULL
+evento2 <- distinct(event_usa_clean)
+evento22 <- table(evento2$event, evento2$Rango.volatilidad.SP500)
+chisq.test(evento22)
+write.csv2(evento22, "eventoparafiltro.csv")
+
+View(evento22)
+head(evento22)
+
+evento22df <- as.data.frame(evento22)
+head(evento22df)
+names(evento22df)[1]<-"Evento"
+names(evento22df)[2]<-"Rango volatilidad"
+names(evento22df)[3]<-"Count"
+
+library(tidyr)
+tr_evento <- evento22df%>%pivot_wider(names_from = 'Rango volatilidad', values_from = Count)
+View(tr_evento)
+
+tr_evento <- cbind(tr_evento, tr_evento$`De 0 a 0,5%`+tr_evento$`De 0,5% a 1%`+tr_evento$`De 1% a 1,5%`+tr_evento$`De 1,5% a 2%`+tr_evento$`De 2% a 2,5%`+tr_evento$`Mayor de 2,5%`)
+names(tr_evento)[8]<-"Total"
+tr_evento <- cbind(tr_evento, tr_evento$`De 0 a 0,5%`/tr_evento$Total)
+tr_evento <- cbind(tr_evento, tr_evento$`De 0,5% a 1%`/tr_evento$Total)
+tr_evento <- cbind(tr_evento, tr_evento$`De 1% a 1,5%`/tr_evento$Total)
+tr_evento <- cbind(tr_evento, tr_evento$`De 1,5% a 2%`/tr_evento$Total)
+tr_evento <- cbind(tr_evento, tr_evento$`De 2% a 2,5%`/tr_evento$Total)
+tr_evento <- cbind(tr_evento, tr_evento$`Mayor de 2,5%`/tr_evento$Total)
+names(tr_evento)[9]<-"% 1r Tramo"
+names(tr_evento)[10]<-"% 2o Tramo"
+names(tr_evento)[11]<-"% 3r Tramo"
+names(tr_evento)[12]<-"% 4o Tramo"
+names(tr_evento)[13]<-"% 5o Tramo"
+names(tr_evento)[14]<-"% 6o Tramo"
+
+summary(tr_evento)
+
+tr_evento_superior_media <- filter(tr_evento, tr_evento$`% 6o Tramo` > 0.0766 )
+tr_evento_filtro2 <- filter(tr_evento, tr_evento$`% 6o Tramo` >= 0.1, tr_evento$Total >= 100)
+
+head(tr_evento)
+View(tr_evento_filtro2)
+
+
+install.packages("sqldf")
+library(sqldf)
+
+variacion_volatilidad <- sqldf('select "Rango volatilidad SP500", 
+                               CASE WHEN variacion_sp500 > 0 then "positivo" else "negativo" end variacion,
+                               COUNT(*) from df_rangos
+                               where "Rango volatilidad SP500" like "Mayor%"
+                               group by 1,2')
+variacion_volatilidad
+
+
+#Analisis predictivo
+
+df_predictivo <- filter(df_final, df_final$zone == 'united states', df_final$date >= "2015-01-01")
+df_predictivo <- distinct(df_predictivo)
+View(df_predictivo)
+View(table(df_predictivo$event))
+write.csv2(df_predictivo, file = 'df_pred.csv')
+
+df_event_cat <- read.csv(file = "df_pred_eventos_categorizados1.csv", sep = ';')
+summary(df_event_cat)
+df_event_cat$Volatilidad_sp500 <- gsub(",", ".", df_event_cat$Volatilidad_sp500)
+df_event_cat$Volatilidad_sp500 <- as.numeric(df_event_cat$Volatilidad_sp500)
+
+model1 <- lm(Volatilidad_sp500 ~ importance + event_categorizado, data = df_event_cat)
+View(model1)
+anova(model1)
+
+model2 <- lm(Volatilidad_sp500 ~ event_categorizado, data = df_event_cat)
+View(model2)
+anova(model2)
+View(model2$coefficients)
